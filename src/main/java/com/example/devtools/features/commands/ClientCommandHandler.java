@@ -6,7 +6,6 @@ import com.example.devtools.features.camera.FlyFeature;
 import com.example.devtools.features.esp.ESPRenderer;
 import com.example.devtools.features.movement.BlockReachFeature;
 import com.example.devtools.features.movement.NoClipFeature;
-import com.example.devtools.features.movement.SpeedHackFeature;
 import com.example.devtools.features.packets.InventoryViewer;
 import com.example.devtools.features.packets.PacketLogger;
 import com.example.devtools.features.profiler.TickProfiler;
@@ -44,7 +43,6 @@ public final class ClientCommandHandler implements IDevFeature {
         COMMANDS.put("near",     ClientCommandHandler::cmdNear);
         COMMANDS.put("feature",  ClientCommandHandler::cmdFeature);
         COMMANDS.put("noclip",   ClientCommandHandler::cmdNoclip);
-        COMMANDS.put("speed",    ClientCommandHandler::cmdSpeed);
         COMMANDS.put("reach",    ClientCommandHandler::cmdReach);
         COMMANDS.put("traj",     ClientCommandHandler::cmdTraj);
         COMMANDS.put("invsee",   ClientCommandHandler::cmdInvsee);
@@ -114,20 +112,6 @@ public final class ClientCommandHandler implements IDevFeature {
         }
     }
 
-    private static void cmdSpeed(String[] a) {
-        SpeedHackFeature sh = SpeedHackFeature.INSTANCE;
-        if (a.length < 2) { FeatureRegistry.toggle("speedhack"); reply("Speed: " + s(sh.isEnabled()) + " §7" + sh.multiplier + "x"); return; }
-        switch (a[1].toLowerCase()) {
-            case "on"   -> { sh.setEnabled(true);  reply("§aSpeed an"); }
-            case "off"  -> { sh.setEnabled(false); reply("§cSpeed aus"); }
-            case "mult" -> {
-                if (a.length < 3) { reply("§cUsage: .speed mult <val>"); return; }
-                try { sh.setMultiplier(Float.parseFloat(a[2])); reply("§eMultiplier: §f" + sh.multiplier + "x"); }
-                catch (NumberFormatException e) { reply("§cUngültiger Wert"); }
-            }
-            default -> reply("§cOption: on|off|mult <val>");
-        }
-    }
 
     private static void cmdReach(String[] a) {
         BlockReachFeature br = BlockReachFeature.INSTANCE;

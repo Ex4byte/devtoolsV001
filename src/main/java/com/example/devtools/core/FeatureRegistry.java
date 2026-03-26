@@ -8,7 +8,6 @@ import com.example.devtools.features.esp.ESPRenderer;
 import com.example.devtools.features.hud.HudOverlay;
 import com.example.devtools.features.movement.BlockReachFeature;
 import com.example.devtools.features.movement.NoClipFeature;
-import com.example.devtools.features.movement.SpeedHackFeature;
 import com.example.devtools.features.packets.InventoryViewer;
 import com.example.devtools.features.packets.PacketLogger;
 import com.example.devtools.features.profiler.TickProfiler;
@@ -36,7 +35,6 @@ public final class FeatureRegistry {
         register(FreecamFeature.INSTANCE);
         register(FlyFeature.INSTANCE);
         register(NoClipFeature.INSTANCE);
-        register(SpeedHackFeature.INSTANCE);
         register(BlockReachFeature.INSTANCE);
         register(TickProfiler.INSTANCE);
         register(PacketLogger.INSTANCE);
