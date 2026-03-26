@@ -1,31 +1,27 @@
 package com.example.devtools.features.camera;
 
 import com.example.devtools.core.IDevFeature;
-import com.example.devtools.util.AbilitiesAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/**
- * Creative Fly für Survival – rein clientseitig.
- * flyingSpeed via AbilitiesAccessor (Reflection) – robust gegen Obfuskierung.
- * ⚠ SERVER: allow-flight=true in server.properties nötig.
- */
 @Mod.EventBusSubscriber(modid = "devtools", bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class FlyFeature implements IDevFeature {
 
     public static final FlyFeature INSTANCE = new FlyFeature();
 
-    private float   speed   = 0.1f;
-    private boolean enabled = false;
+    private boolean enabled        = false;
+    private float   speed          = 0.1f;
+    public  boolean serverSafeMode = true;
 
-    private boolean savedMayfly = false;
-    private boolean savedFlying = false;
-    private float   savedSpeed  = 0.05f;
+    private static final int GROUND_PACKET_INTERVAL = 20;
+    private int groundPacketTimer = 0;
 
     private FlyFeature() {}
 
@@ -37,44 +33,65 @@ public final class FlyFeature implements IDevFeature {
     public void setEnabled(boolean e) {
         if (e == this.enabled) return;
         this.enabled = e;
-
         LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) return;
-
-        if (e) {
-            savedMayfly = player.getAbilities().mayfly;
-            savedFlying = player.getAbilities().flying;
-            savedSpeed  = AbilitiesAccessor.getFlyingSpeed(player);
-            player.getAbilities().mayfly = true;
-            player.getAbilities().flying = true;
-            AbilitiesAccessor.setFlyingSpeed(player, Mth.clamp(speed, 0.01f, 1.0f));
-            player.onUpdateAbilities();
-        } else {
-            player.getAbilities().mayfly = savedMayfly;
-            player.getAbilities().flying = savedFlying;
-            AbilitiesAccessor.setFlyingSpeed(player, savedSpeed);
-            player.onUpdateAbilities();
+        if (!e) {
+            player.noPhysics = false;
         }
     }
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        if (!INSTANCE.enabled) return;
+        FlyFeature fly = INSTANCE;
+        if (!fly.enabled) return;
         if (event.phase != TickEvent.Phase.START) return;
+
         LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) return;
-        player.getAbilities().mayfly = true;
-        player.getAbilities().flying = true;
-        AbilitiesAccessor.setFlyingSpeed(player, Mth.clamp(INSTANCE.speed, 0.01f, 1.0f));
+        Minecraft mc = Minecraft.getInstance();
+
+        player.noPhysics = true;
         player.fallDistance = 0f;
+
+        float actualSpeed = Mth.clamp(fly.speed, 0.01f, 1.0f);
+        if (mc.options.keySprint.isDown()) actualSpeed *= 4.0f;
+
+        float yawRad   = (float) Math.toRadians(player.getYRot());
+        float pitchRad = (float) Math.toRadians(player.getXRot());
+
+        Vec3 fwd = new Vec3(
+            -Math.sin(yawRad) * Math.cos(pitchRad),
+            -Math.sin(pitchRad),
+             Math.cos(yawRad)  * Math.cos(pitchRad)
+        );
+        Vec3 right = new Vec3(Math.cos(yawRad), 0, Math.sin(yawRad));
+
+        float fw   = (mc.options.keyUp.isDown()    ? 1 : 0) - (mc.options.keyDown.isDown()  ? 1 : 0);
+        float str  = (mc.options.keyRight.isDown() ? 1 : 0) - (mc.options.keyLeft.isDown()  ? 1 : 0);
+        float vert = (mc.options.keyJump.isDown()  ? 1 : 0) - (mc.options.keyShift.isDown() ? 1 : 0);
+
+        Vec3 movement = fwd.scale(fw * actualSpeed)
+            .add(right.scale(str * actualSpeed))
+            .add(0, vert * actualSpeed, 0);
+
+        player.setDeltaMovement(movement.lengthSqr() > 0 ? movement : Vec3.ZERO);
+
+        // Gefälschte onGround=true Pakete verhindern den Flying-Kick auf Vanilla/Paper
+        if (fly.serverSafeMode) {
+            fly.groundPacketTimer++;
+            if (fly.groundPacketTimer >= GROUND_PACKET_INTERVAL) {
+                fly.groundPacketTimer = 0;
+                if (player.connection != null) {
+                    player.connection.send(new ServerboundMovePlayerPacket.PosRot(
+                        player.getX(), player.getY(), player.getZ(),
+                        player.getYRot(), player.getXRot(),
+                        true
+                    ));
+                }
+            }
+        }
     }
 
-    public void setSpeed(float s) {
-        this.speed = Mth.clamp(s, 0.01f, 1.0f);
-        LocalPlayer player = Minecraft.getInstance().player;
-        if (enabled && player != null)
-            AbilitiesAccessor.setFlyingSpeed(player, this.speed);
-    }
-
-    public float getSpeed() { return speed; }
+    public void setSpeed(float s) { this.speed = Mth.clamp(s, 0.01f, 1.0f); }
+    public float getSpeed()       { return speed; }
 }

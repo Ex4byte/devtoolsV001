@@ -1,4 +1,4 @@
-package com.example.devtools.features.render;
+package com.example.devtools.mixin.render;
 
 import com.example.devtools.core.IDevFeature;
 import com.mojang.blaze3d.vertex.PoseStack;
