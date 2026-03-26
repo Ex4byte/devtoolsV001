@@ -1,0 +1,29 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mixins]]
+config="devtools.mixins.json"
+
+[[mods]]
+modId="devtools"
+version="1.0.0"
+displayName="DevTools"
+description='''
+Client-Side DevTools für Minecraft Forge 1.20.1.
+ESP, HUD, Freecam, Fly, Profiler, Packet Logger und mehr.
+'''
+
+[[dependencies.devtools]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47,)"
+    ordering="NONE"
+    side="CLIENT"
+
+[[dependencies.devtools]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,1.21)"
+    ordering="NONE"
+    side="CLIENT"
